@@ -26,27 +26,83 @@ const itemObject = z.object({
   ),
 });
 
-const formSchema = z.object({
-  items: z.array(itemObject),
-  tax: z
-    .preprocess((val) => parseFloat(val as string), z.number().optional())
-    .optional(),
-});
+const formSchema = z
+  .object({
+    items: z.array(itemObject),
+    tax: z.preprocess(
+      (val) => (val === "" ? undefined : parseFloat(val as string)),
+      z
+        .number({
+          required_error: "Tax must be a number",
+          invalid_type_error: "Tax must be a number",
+        })
+        .optional()
+    ),
+    totalPrice: z.preprocess(
+      (val) => (val === "" ? undefined : parseFloat(val as string)),
+      z
+        .number({
+          required_error: "Total Price must be a number",
+          invalid_type_error: "Total Price must be a number",
+        })
+        .optional()
+    ),
+  })
+  .refine((data) => data.tax !== undefined || data.totalPrice !== undefined, {
+    message: "Either tax or total price is required",
+    path: ["tax", "totalPrice"],
+  });
 
 function App() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       items: [{ name: "", price: 0 }],
-      tax: 0,
+      tax: undefined,
+      totalPrice: undefined,
     },
-    mode: "onBlur",
+    mode: "onBlur", // Validation will now trigger onBlur or onSubmit
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items",
   });
+
+  const calculateTotalPrice = () => {
+    const itemsTotal = form
+      .getValues("items")
+      .reduce((sum, item) => sum + (item.price || 0), 0);
+    const tax = form.getValues("tax") || 0;
+    return itemsTotal + tax;
+  };
+
+  const calculateTax = () => {
+    const itemsTotal = form
+      .getValues("items")
+      .reduce((sum, item) => sum + (item.price || 0), 0);
+    const totalPrice = form.getValues("totalPrice") || 0;
+    return totalPrice - itemsTotal;
+  };
+
+  const handleTaxChange = (value: number) => {
+    form.setValue("tax", value, { shouldValidate: true });
+    form.setValue("totalPrice", calculateTotalPrice(), {
+      shouldValidate: true,
+    });
+  };
+
+  const handleTotalPriceChange = (value: number) => {
+    form.setValue("totalPrice", value, { shouldValidate: true });
+    form.setValue("tax", calculateTax(), { shouldValidate: true });
+  };
+
+  const handleItemPriceChange = (index: number, value: number) => {
+    form.setValue(`items.${index}.price`, value, { shouldValidate: true });
+    form.setValue("totalPrice", calculateTotalPrice(), {
+      shouldValidate: true,
+    });
+  };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log("Submitted data:", values);
@@ -82,8 +138,8 @@ function App() {
                       <FormControl>
                         <Input
                           placeholder="Enter item name"
-                          className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
                           {...field}
+                          className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
                         />
                       </FormControl>
                       <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
@@ -101,9 +157,15 @@ function App() {
                       <FormControl>
                         <Input
                           placeholder="Enter price"
-                          onFocus={highlightText}
-                          className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
                           {...field}
+                          onFocus={highlightText}
+                          onChange={(e) =>
+                            handleItemPriceChange(
+                              index,
+                              parseFloat(e.target.value)
+                            )
+                          }
+                          className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
                         />
                       </FormControl>
                       <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
@@ -111,12 +173,12 @@ function App() {
                   )}
                 />
                 {canRemove && (
-                  <div className="lg:mt-0.5 lg:pt-5 flex justify-center items-center">
+                  <div className="h-full pb-1.5 flex justify-center items-center">
                     <Button
                       type="button"
                       variant="destructive"
                       onClick={() => remove(index)}
-                      className="text-sm text-red-600 bg-red-100 hover:bg-red-200 px-4 py-2 rounded-md shadow-sm min-w-[80px] md:min-w-[100px] flex justify-center"
+                      className="text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md shadow-sm"
                     >
                       Remove
                     </Button>
@@ -124,6 +186,52 @@ function App() {
                 )}
               </div>
             ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <FormField
+                control={form.control}
+                name="tax"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="font-medium text-gray-600">
+                      Tax
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter total tax"
+                        {...field}
+                        onChange={(e) =>
+                          handleTaxChange(parseFloat(e.target.value))
+                        }
+                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="totalPrice"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="font-medium text-gray-600">
+                      Total Price
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter total price"
+                        {...field}
+                        onChange={(e) =>
+                          handleTotalPriceChange(parseFloat(e.target.value))
+                        }
+                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className="flex flex-col md:flex-row gap-4 mt-8">
               <Button
                 type="button"
