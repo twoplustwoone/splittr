@@ -11,6 +11,12 @@ import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "./components/ui/button";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+import { ChevronsUpDown } from "lucide-react";
 
 const itemObject = z.object({
   name: z.string().nonempty("Name is required"),
@@ -61,48 +67,13 @@ function App() {
       tax: undefined,
       totalPrice: undefined,
     },
-    mode: "onBlur", // Validation will now trigger onBlur or onSubmit
+    mode: "onBlur",
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items",
   });
-
-  const calculateTotalPrice = () => {
-    const itemsTotal = form
-      .getValues("items")
-      .reduce((sum, item) => sum + (item.price || 0), 0);
-    const tax = form.getValues("tax") || 0;
-    return itemsTotal + tax;
-  };
-
-  const calculateTax = () => {
-    const itemsTotal = form
-      .getValues("items")
-      .reduce((sum, item) => sum + (item.price || 0), 0);
-    const totalPrice = form.getValues("totalPrice") || 0;
-    return totalPrice - itemsTotal;
-  };
-
-  const handleTaxChange = (value: number) => {
-    form.setValue("tax", value, { shouldValidate: true });
-    form.setValue("totalPrice", calculateTotalPrice(), {
-      shouldValidate: true,
-    });
-  };
-
-  const handleTotalPriceChange = (value: number) => {
-    form.setValue("totalPrice", value, { shouldValidate: true });
-    form.setValue("tax", calculateTax(), { shouldValidate: true });
-  };
-
-  const handleItemPriceChange = (index: number, value: number) => {
-    form.setValue(`items.${index}.price`, value, { shouldValidate: true });
-    form.setValue("totalPrice", calculateTotalPrice(), {
-      shouldValidate: true,
-    });
-  };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log("Submitted data:", values);
@@ -123,115 +94,74 @@ function App() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             {fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="grid grid-cols-1 md:grid-cols-[2fr_2fr_auto] gap-6 bg-gray-50 p-4 rounded-lg shadow-sm mb-4 items-start"
-              >
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.name`}
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="font-medium text-gray-600">
-                        Name
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter item name"
-                          {...field}
-                          className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                        />
-                      </FormControl>
-                      <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.price`}
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="font-medium text-gray-600">
-                        Price
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter price"
-                          {...field}
-                          onFocus={highlightText}
-                          onChange={(e) =>
-                            handleItemPriceChange(
-                              index,
-                              parseFloat(e.target.value)
-                            )
-                          }
-                          className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                        />
-                      </FormControl>
-                      <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
-                    </FormItem>
-                  )}
-                />
-                {canRemove && (
-                  <div className="h-full pb-1.5 flex justify-center items-center">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => remove(index)}
-                      className="text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md shadow-sm"
-                    >
-                      Remove
-                    </Button>
+              <Collapsible defaultOpen key={field.id} className="mb-4">
+                <CollapsibleTrigger className="w-full flex justify-between items-center bg-gray-50 p-4 rounded-lg shadow-sm">
+                  <h3 className="font-medium text-lg text-gray-700">
+                    Item {index + 1}
+                  </h3>
+                  <Button variant="ghost" size="sm">
+                    <ChevronsUpDown className="h-4 w-4" />
+                    <span className="sr-only">Toggle</span>
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="bg-gray-100 p-4 rounded-lg shadow-inner mt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-[2fr_2fr_auto] gap-6 items-start">
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.name`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className="font-medium text-gray-600">
+                            Name
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter item name"
+                              {...field}
+                              className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.price`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className="font-medium text-gray-600">
+                            Price
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter price"
+                              {...field}
+                              onFocus={highlightText}
+                              className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                        </FormItem>
+                      )}
+                    />
+                    {canRemove && (
+                      <div className="h-full flex justify-center items-center">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => remove(index)}
+                          className="text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md shadow-sm"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </CollapsibleContent>
+              </Collapsible>
             ))}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <FormField
-                control={form.control}
-                name="tax"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="font-medium text-gray-600">
-                      Tax
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter total tax"
-                        {...field}
-                        onChange={(e) =>
-                          handleTaxChange(parseFloat(e.target.value))
-                        }
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="totalPrice"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="font-medium text-gray-600">
-                      Total Price
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter total price"
-                        {...field}
-                        onChange={(e) =>
-                          handleTotalPriceChange(parseFloat(e.target.value))
-                        }
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"></div>
             <div className="flex flex-col md:flex-row gap-4 mt-8">
               <Button
                 type="button"
