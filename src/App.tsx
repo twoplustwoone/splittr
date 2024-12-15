@@ -33,13 +33,7 @@ function CopyButton({ text }: { text: string }) {
   };
 
   return (
-    <Button
-      // type="button"
-      type="button"
-      onClick={handleCopy}
-      variant={"ghost"}
-      // className="flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm font-medium"
-    >
+    <Button type="button" onClick={handleCopy} variant="ghost">
       <ClipboardCopy className="w-4 h-4" />
     </Button>
   );
@@ -86,7 +80,7 @@ function App() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      items: [{ name: "", price: 0.0 }],
+      items: [{ name: "Item 1", price: 0.0 }],
       tax: 0.0,
       totalPrice: 0.0,
     },
@@ -111,18 +105,15 @@ function App() {
 
   const { toast } = useToast();
 
-  // Watch for changes to tax and to total price. If the user changes the total tax field, the total price should be recalculated. If the user changes the total price field, the total tax should be recalculated.
   useEffect(() => {
     const total = watchItems.reduce((acc, { price }) => acc + price, 0);
     form.setValue("totalPrice", total + watchTax);
   }, [fields, form, watchItems, watchTax, watchTotalPrice]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Submitted data:", values);
-    // Itemize the bill
     const { items, tax, totalPrice } = values;
     const itemized = items.map(({ name, price }) => {
-      const taxProportion = (price / totalPrice) * tax;
+      const taxProportion = (price / (totalPrice - tax)) * tax;
       return {
         name,
         price,
@@ -137,6 +128,44 @@ function App() {
     event.target.select();
   };
 
+  const handleKeyDown = (
+    e: React.KeyboardEvent,
+    currentIndex: number,
+    fieldType: "name" | "price" | "totals"
+  ) => {
+    if (e.metaKey && e.key === "Enter") {
+      e.preventDefault();
+      form.handleSubmit(onSubmit)();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (fieldType === "name") {
+        document
+          .querySelector<HTMLInputElement>(
+            `[data-index='${currentIndex}-price']`
+          )
+          ?.focus();
+      } else if (fieldType === "price") {
+        const nextNameInput = document.querySelector<HTMLInputElement>(
+          `[data-index='${currentIndex + 1}-name']`
+        );
+        if (nextNameInput) {
+          nextNameInput.focus();
+        } else {
+          append({ name: `Item ${fields.length + 1}`, price: 0 });
+          setTimeout(() => {
+            document
+              .querySelector<HTMLInputElement>(
+                `[data-index='${fields.length}-name']`
+              )
+              ?.focus();
+          }, 0);
+        }
+      } else if (fieldType === "totals") {
+        form.handleSubmit(onSubmit)();
+      }
+    }
+  };
+
   const canRemove = fields.length > 1;
 
   return (
@@ -146,7 +175,6 @@ function App() {
           splittr
         </h1>
 
-        {/* Form */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             {fields.map((field, index) => (
@@ -158,24 +186,24 @@ function App() {
                 canRemove={canRemove}
                 remove={remove}
                 key={field.id}
+                handleKeyDown={handleKeyDown}
               />
             ))}
 
-            {/* Add Item Button */}
             <div className="mt-4 flex justify-start">
               <Button
                 type="button"
-                onClick={() => append({ name: "", price: 0 })}
+                onClick={() =>
+                  append({ name: `Item ${fields.length + 1}`, price: 0 })
+                }
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md shadow-md"
               >
                 Add Item
               </Button>
             </div>
 
-            {/* Sticky Footer Summary */}
             <div className="mt-4 sticky bottom-0 bg-white shadow-inner p-4 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Total Tax Field */}
                 <FormField
                   control={form.control}
                   name="tax"
@@ -195,13 +223,13 @@ function App() {
                           onChange={(e) =>
                             field.onChange(parseFloat(e.target.value))
                           }
+                          onKeyDown={(e) => handleKeyDown(e, -1, "totals")}
                         />
                       </FormControl>
                       <FormMessage className="text-red-500 text-sm mt-1" />
                     </FormItem>
                   )}
                 />
-                {/* Total Price Field */}
                 <FormField
                   control={form.control}
                   name="totalPrice"
@@ -218,6 +246,7 @@ function App() {
                           onFocus={highlightText}
                           type="number"
                           step="0.01"
+                          onKeyDown={(e) => handleKeyDown(e, -1, "totals")}
                         />
                       </FormControl>
                       <FormMessage className="text-red-500 text-sm mt-1" />
@@ -227,15 +256,7 @@ function App() {
               </div>
             </div>
 
-            {/* Buttons */}
             <div className="flex justify-between mt-6">
-              {/* <Button
-                type="button"
-                onClick={() => append({ name: "", price: 0 })}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md shadow-md"
-              >
-                Add Item
-              </Button> */}
               <Button
                 type="submit"
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md shadow-md"
@@ -246,7 +267,6 @@ function App() {
           </form>
         </Form>
 
-        {/* Itemized Bill Table */}
         {itemizedItems.length > 0 && (
           <div className="mt-8">
             <h2 className="text-2xl font-bold text-center text-gray-700 mb-4">
@@ -327,6 +347,7 @@ function Item({
   highlightText,
   canRemove,
   remove,
+  handleKeyDown,
 }: {
   form: ReturnType<typeof useForm<z.infer<typeof formSchema>>>;
   index: number;
@@ -334,6 +355,11 @@ function Item({
   highlightText: (event: React.FocusEvent<HTMLInputElement>) => void;
   canRemove: boolean;
   remove: (index: number) => void;
+  handleKeyDown: (
+    e: React.KeyboardEvent,
+    currentIndex: number,
+    fieldType: "name" | "price"
+  ) => void;
 }) {
   const currentName = useWatch({
     control: form.control,
@@ -370,8 +396,11 @@ function Item({
                   <FormControl>
                     <Input
                       {...field}
+                      data-index={`${index}-name`}
                       placeholder="Enter item name"
                       className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                      onKeyDown={(e) => handleKeyDown(e, index, "name")}
+                      onFocus={highlightText}
                     />
                   </FormControl>
                   <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
@@ -389,14 +418,16 @@ function Item({
                   <FormControl>
                     <Input
                       {...field}
+                      data-index={`${index}-price`}
                       placeholder="Enter price"
                       onFocus={highlightText}
                       className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                      onChange={(e) => {
-                        field.onChange(parseFloat(e.target.value));
-                      }}
+                      onKeyDown={(e) => handleKeyDown(e, index, "price")}
                       type="number"
                       step="0.01"
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value))
+                      }
                     />
                   </FormControl>
                   <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
@@ -404,7 +435,7 @@ function Item({
               )}
             />
             {canRemove && (
-              <div className="pt-0.5 mt-5">
+              <div className="h-full flex justify-center items-center">
                 <Button
                   type="button"
                   variant="destructive"
