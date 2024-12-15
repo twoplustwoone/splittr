@@ -85,7 +85,7 @@ function App() {
   const canRemove = fields.length > 1;
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100">
+    <div className="min-h-screen flex md:pt-16 flex-col  items-center bg-gray-100">
       <div className="w-full max-w-2xl p-6 bg-white rounded-lg shadow-lg">
         <h1 className="text-3xl font-semibold text-center text-gray-700 mb-8">
           splittr
