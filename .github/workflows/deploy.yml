@@ -24,7 +24,6 @@ jobs:
       - name: Build the app
         run: npm run build
 
-      # Step 4: Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
