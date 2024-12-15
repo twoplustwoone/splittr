@@ -16,7 +16,6 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
-import { ChevronsUpDown } from "lucide-react";
 
 const itemObject = z.object({
   name: z.string().nonempty("Name is required"),
@@ -94,74 +93,118 @@ function App() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             {fields.map((field, index) => (
-              <Collapsible defaultOpen key={field.id} className="mb-4">
-                <CollapsibleTrigger className="w-full flex justify-between items-center bg-gray-50 p-4 rounded-lg shadow-sm">
-                  <h3 className="font-medium text-lg text-gray-700">
-                    Item {index + 1}
-                  </h3>
-                  <Button variant="ghost" size="sm">
-                    <ChevronsUpDown className="h-4 w-4" />
-                    <span className="sr-only">Toggle</span>
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="bg-gray-100 p-4 rounded-lg shadow-inner mt-2">
-                  <div className="grid grid-cols-1 md:grid-cols-[2fr_2fr_auto] gap-6 items-start">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.name`}
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel className="font-medium text-gray-600">
-                            Name
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter item name"
-                              {...field}
-                              className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                            />
-                          </FormControl>
-                          <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
-                        </FormItem>
+              <Collapsible key={field.id} className="mb-4">
+                <div className="border border-gray-200 rounded-md shadow-sm">
+                  <CollapsibleTrigger className="w-full flex justify-between items-center bg-gray-50 px-4 py-3 rounded-t-md hover:bg-gray-100 focus:ring focus:ring-blue-200 shadow-md active:scale-95 transition-all">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-lg text-gray-700">
+                        {form.getValues(`items.${index}.name`) ||
+                          `Item ${index + 1}`}
+                      </h3>
+                    </div>
+                    <span className="font-medium text-gray-600">
+                      ${form.getValues(`items.${index}.price`) || 0}
+                    </span>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent className="bg-gray-100 px-4 py-4 rounded-b-md">
+                    <div className="grid grid-cols-1 md:grid-cols-[2fr_2fr_auto] gap-6 items-start">
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.name`}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="font-medium text-gray-600">
+                              Name
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Enter item name"
+                                {...field}
+                                className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.price`}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="font-medium text-gray-600">
+                              Price
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Enter price"
+                                {...field}
+                                onFocus={highlightText}
+                                className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                          </FormItem>
+                        )}
+                      />
+                      {canRemove && (
+                        <div className="h-full flex justify-center items-center">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => remove(index)}
+                            className="text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md shadow-sm"
+                          >
+                            Remove
+                          </Button>
+                        </div>
                       )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.price`}
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel className="font-medium text-gray-600">
-                            Price
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter price"
-                              {...field}
-                              onFocus={highlightText}
-                              className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                            />
-                          </FormControl>
-                          <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
-                        </FormItem>
-                      )}
-                    />
-                    {canRemove && (
-                      <div className="h-full flex justify-center items-center">
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={() => remove(index)}
-                          className="text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md shadow-sm"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CollapsibleContent>
+                    </div>
+                  </CollapsibleContent>
+                </div>
               </Collapsible>
             ))}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <FormField
+                control={form.control}
+                name="tax"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="font-medium text-gray-600">
+                      Tax
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter total tax"
+                        {...field}
+                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="totalPrice"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="font-medium text-gray-600">
+                      Total Price
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter total price"
+                        {...field}
+                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className="flex flex-col md:flex-row gap-4 mt-8">
               <Button
                 type="button"
