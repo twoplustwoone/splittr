@@ -93,7 +93,7 @@ function App() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             {fields.map((field, index) => (
-              <Collapsible key={field.id} className="mb-4">
+              <Collapsible defaultOpen key={field.id} className="mb-4">
                 <div className="border border-gray-200 rounded-md shadow-sm">
                   <CollapsibleTrigger className="w-full flex justify-between items-center bg-gray-50 px-4 py-3 rounded-t-md hover:bg-gray-100 focus:ring focus:ring-blue-200 shadow-md active:scale-95 transition-all">
                     <div className="flex items-center gap-2">
