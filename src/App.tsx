@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "./components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useToast } from "./hooks/use-toast";
 import { Item, itemObject } from "@/components/item";
 import { CopyButton } from "./components/copyButton";
@@ -49,6 +49,14 @@ function App() {
     },
     mode: "onBlur",
   });
+
+  const firstItemRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (firstItemRef.current) {
+      firstItemRef.current.focus();
+    }
+  }, []);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -129,8 +137,6 @@ function App() {
     }
   };
 
-  const canRemove = fields.length > 1;
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-gray-100 pt-4">
       <div className="w-full max-w-3xl bg-white rounded-lg shadow-md p-6">
@@ -146,10 +152,11 @@ function App() {
                 index={index}
                 field={field}
                 highlightText={highlightText}
-                canRemove={canRemove}
+                canRemove={fields.length > 1}
                 remove={remove}
                 key={field.id}
                 handleKeyDown={handleKeyDown}
+                ref={index === 0 ? firstItemRef : null} // Provide a ref for the first input
               />
             ))}
 
