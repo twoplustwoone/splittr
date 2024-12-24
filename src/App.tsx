@@ -13,7 +13,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "./components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "./hooks/use-toast";
-import { Item, itemObject } from "@/components/item";
+import { Item } from "@/components/item/item";
+import { itemObject } from "./components/item/schema";
 import { CopyButton } from "./components/copyButton";
 import { highlightText } from "./lib/utils";
 

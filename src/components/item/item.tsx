@@ -6,31 +6,17 @@ import {
 } from "@radix-ui/react-collapsible";
 import { Control, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import {
   FormField,
   FormItem,
   FormLabel,
   FormControl,
   FormMessage,
-} from "./ui/form";
-import { Input } from "./ui/input";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { formSchema } from "@/App";
 import { highlightText } from "@/lib/utils";
-
-export const itemObject = z.object({
-  name: z.string().nonempty("Name is required"),
-  price: z.preprocess(
-    (val) =>
-      val === "" || val === undefined ? undefined : parseFloat(val as string),
-    z
-      .number({
-        required_error: "Price is required",
-        invalid_type_error: "Price must be a number",
-      })
-      .min(0, "Price cannot be less than 0")
-  ),
-});
 
 interface ItemProps {
   control: Control<z.infer<typeof formSchema>>;
