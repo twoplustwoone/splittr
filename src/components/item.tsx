@@ -16,6 +16,7 @@ import {
 } from "./ui/form";
 import { Input } from "./ui/input";
 import { formSchema } from "@/App";
+import { highlightText } from "@/lib/utils";
 
 export const itemObject = z.object({
   name: z.string().nonempty("Name is required"),
@@ -35,10 +36,9 @@ interface ItemProps {
   control: Control<z.infer<typeof formSchema>>;
   index: number;
   field: { id: string };
-  highlightText: (event: React.FocusEvent<HTMLInputElement>) => void;
   canRemove: boolean;
-  remove: (index: number) => void;
-  handleKeyDown: (
+  onRemove: (index: number) => void;
+  onKeyDown: (
     e: React.KeyboardEvent,
     currentIndex: number,
     fieldType: "name" | "price"
@@ -51,10 +51,9 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
       control,
       index,
       field,
-      highlightText,
       canRemove,
-      remove,
-      handleKeyDown,
+      onRemove: remove,
+      onKeyDown: handleKeyDown,
     }: ItemProps,
     ref: React.ForwardedRef<HTMLInputElement>
   ) => {
@@ -90,7 +89,10 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                 name={`items.${index}.name` as `items.${number}.name`}
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="font-medium text-gray-600">
+                    <FormLabel
+                      aria-label="name"
+                      className="font-medium text-gray-600"
+                    >
                       Name
                     </FormLabel>
                     <FormControl>
@@ -102,6 +104,7 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                         onKeyDown={(e) => handleKeyDown(e, index, "name")}
                         onFocus={highlightText}
                         ref={ref}
+                        aria-labelledby="name"
                       />
                     </FormControl>
                     <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
@@ -113,7 +116,10 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                 name={`items.${index}.price` as `items.${number}.price`}
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="font-medium text-gray-600">
+                    <FormLabel
+                      aria-label="price"
+                      className="font-medium text-gray-600"
+                    >
                       Price
                     </FormLabel>
                     <FormControl>
@@ -129,6 +135,7 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                         onChange={(e) =>
                           field.onChange(parseFloat(e.target.value))
                         }
+                        aria-labelledby="price"
                       />
                     </FormControl>
                     <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />

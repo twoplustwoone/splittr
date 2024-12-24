@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "./hooks/use-toast";
 import { Item, itemObject } from "@/components/item";
 import { CopyButton } from "./components/copyButton";
+import { highlightText } from "./lib/utils";
 
 export const formSchema = z
   .object({
@@ -95,10 +96,6 @@ function App() {
     setItemizedItems(itemized);
   };
 
-  const highlightText = (event: React.FocusEvent<HTMLInputElement>) => {
-    event.target.select();
-  };
-
   const handleKeyDown = (
     e: React.KeyboardEvent,
     currentIndex: number,
@@ -151,11 +148,10 @@ function App() {
                 control={form.control}
                 index={index}
                 field={field}
-                highlightText={highlightText}
                 canRemove={fields.length > 1}
-                remove={remove}
+                onRemove={remove}
                 key={field.id}
-                handleKeyDown={handleKeyDown}
+                onKeyDown={handleKeyDown}
                 ref={index === 0 ? firstItemRef : null} // Provide a ref for the first input
               />
             ))}
