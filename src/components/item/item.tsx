@@ -15,8 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { formSchema } from "@/App";
 import { highlightText } from "@/lib/utils";
+import { formSchema } from "../itemsForm/schema";
 
 interface ItemProps {
   control: Control<z.infer<typeof formSchema>>;
