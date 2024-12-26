@@ -23,6 +23,7 @@ interface ItemProps {
   index: number;
   field: { id: string };
   canRemove: boolean;
+  name: `items.${number}.name` | `items.${number}.price`;
   onRemove: (index: number) => void;
   onKeyDown: (
     e: React.KeyboardEvent,
@@ -35,8 +36,8 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
   (
     {
       control,
+      name,
       index,
-      field,
       canRemove,
       onRemove: remove,
       onKeyDown: handleKeyDown,
@@ -45,15 +46,15 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
   ) => {
     const currentName = useWatch({
       control,
-      name: `items.${index}.name` as `items.${number}.name`,
+      name,
     });
     const currentPrice = useWatch({
       control,
-      name: `items.${index}.price` as `items.${number}.price`,
+      name,
     });
 
     return (
-      <Collapsible defaultOpen key={field.id} className="mb-4">
+      <Collapsible defaultOpen className="mb-4">
         <div className="border border-gray-200 rounded-md shadow-sm">
           <CollapsibleTrigger className="w-full flex justify-between items-center bg-gray-50 px-4 py-3 rounded-t-md hover:bg-gray-100 focus:ring focus:ring-blue-200 shadow-md active:scale-95 transition-all">
             <div className="flex items-center gap-2">

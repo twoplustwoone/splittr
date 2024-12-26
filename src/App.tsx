@@ -153,6 +153,7 @@ function App() {
                 onRemove={remove}
                 key={field.id}
                 onKeyDown={handleKeyDown}
+                name={`items.${index}.name`}
                 ref={index === 0 ? firstItemRef : null} // Provide a ref for the first input
               />
             ))}
