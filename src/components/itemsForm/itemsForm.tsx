@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { itemsFormSchema } from "./schema";
+import { HelpText } from "../helpText/helpText";
 
 type ItemsFormProps = {
   onSubmit: SubmitHandler<z.infer<typeof itemsFormSchema>>;
@@ -114,15 +115,17 @@ export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
         ))}
 
         <div className="mt-4 flex justify-start">
-          <Button
-            type="button"
-            onClick={() =>
-              append({ name: `Item ${fields.length + 1}`, price: 0 })
-            }
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md shadow-md"
-          >
-            Add Item
-          </Button>
+          <HelpText text={"Enter ↵"}>
+            <Button
+              type="button"
+              onClick={() =>
+                append({ name: `Item ${fields.length + 1}`, price: 0 })
+              }
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md shadow-md"
+            >
+              Add Item
+            </Button>
+          </HelpText>
         </div>
 
         <div className="mt-4 sticky bottom-0 bg-white shadow-inner p-4 rounded-lg">
@@ -181,12 +184,14 @@ export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
         </div>
 
         <div className="flex justify-between mt-6">
-          <Button
-            type="submit"
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md shadow-md"
-          >
-            Itemize
-          </Button>
+          <HelpText text={"CMD ⌘ + Enter ↵"}>
+            <Button
+              type="submit"
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md shadow-md"
+            >
+              Itemize
+            </Button>
+          </HelpText>
         </div>
       </form>
     </Form>
