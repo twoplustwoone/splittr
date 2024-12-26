@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useToast } from "./hooks/use-toast";
 import { CopyButton } from "./components/copyButton";
 import { ItemsForm } from "./components/itemsForm/itemsForm";
-import { formSchema } from "./components/itemsForm/schema";
+import { itemsFormSchema } from "./components/itemsForm/schema";
 
 function App() {
   const [itemizedItems, setItemizedItems] = useState<
@@ -13,7 +13,7 @@ function App() {
 
   const { toast } = useToast();
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = (values: z.infer<typeof itemsFormSchema>) => {
     const { items, tax, totalPrice } = values;
     const itemized = items.map(({ name, price }) => {
       const taxProportion = (price / (totalPrice - tax)) * tax;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { itemObject } from "../item/schema";
 
-export const formSchema = z
+export const itemsFormSchema = z
   .object({
     items: z.array(itemObject),
     tax: z.preprocess(

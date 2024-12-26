@@ -19,15 +19,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { formSchema } from "./schema";
+import { itemsFormSchema } from "./schema";
 
 type ItemsFormProps = {
-  onSubmit: SubmitHandler<z.infer<typeof formSchema>>;
+  onSubmit: SubmitHandler<z.infer<typeof itemsFormSchema>>;
 };
 
 export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof itemsFormSchema>>({
+    resolver: zodResolver(itemsFormSchema),
     defaultValues: {
       items: [{ name: "Item 1", price: 0.0 }],
       tax: 0.0,

@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { highlightText } from "@/lib/utils";
-import { formSchema } from "../itemsForm/schema";
+import { itemsFormSchema } from "../itemsForm/schema";
 
 interface ItemProps {
-  control: Control<z.infer<typeof formSchema>>;
+  control: Control<z.infer<typeof itemsFormSchema>>;
   index: number;
   field: { id: string };
   canRemove: boolean;
