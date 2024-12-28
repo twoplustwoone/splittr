@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   SubmitHandler,
   useFieldArray,
@@ -26,6 +26,18 @@ type ItemsFormProps = {
   onSubmit: SubmitHandler<z.infer<typeof itemsFormSchema>>;
 };
 
+const useAutoFocusFirstItem = () => {
+  const firstItemRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (firstItemRef.current) {
+      firstItemRef.current.focus();
+    }
+  }, []);
+
+  return { firstItemRef };
+};
+
 export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
   const form = useForm<z.infer<typeof itemsFormSchema>>({
     resolver: zodResolver(itemsFormSchema),
@@ -40,6 +52,9 @@ export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
     control: form.control,
     name: "items",
   });
+
+  const [isManualTotal, setIsManualTotal] = useState(false);
+
   const watchItems = useWatch({ control: form.control, name: "items" });
   const watchTax = useWatch({ control: form.control, name: "tax" });
   const watchTotalPrice = useWatch({
@@ -47,18 +62,44 @@ export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
     name: "totalPrice",
   });
 
-  const firstItemRef = useRef<HTMLInputElement | null>(null);
+  const { firstItemRef } = useAutoFocusFirstItem();
+
+  const handleItemPriceChange = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setIsManualTotal(false); // user changed an item => revert to "auto" total
+    const priceValue = parseFloat(e.target.value) || 0;
+
+    form.setValue(`items.${index}.price`, priceValue);
+  };
+
+  const handleTaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsManualTotal(false);
+    const newTax = parseFloat(e.target.value) || 0;
+    form.setValue("tax", newTax);
+  };
+
+  const handleTotalPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsManualTotal(true);
+    const newTotal = parseFloat(e.target.value) || 0;
+    form.setValue("totalPrice", newTotal);
+
+    const subtotal = watchItems.reduce((acc, { price }) => acc + price, 0);
+    form.setValue("tax", newTotal - subtotal);
+  };
 
   useEffect(() => {
-    if (firstItemRef.current) {
-      firstItemRef.current.focus();
+    if (!isManualTotal) {
+      const subtotal = watchItems.reduce((acc, { price }) => acc + price, 0);
+      const newTotal = subtotal + watchTax;
+
+      if (newTotal !== watchTotalPrice) {
+        form.setValue("totalPrice", newTotal);
+      }
     }
-  }, []);
+  }, [isManualTotal, watchItems, watchTax, watchTotalPrice, form]);
 
-  useEffect(() => {
-    const total = watchItems.reduce((acc, { price }) => acc + price, 0);
-    form.setValue("totalPrice", total + watchTax);
-  }, [fields, form, watchItems, watchTax, watchTotalPrice]);
   const handleKeyDown = (
     e: React.KeyboardEvent,
     currentIndex: number,
@@ -111,6 +152,7 @@ export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
             onKeyDown={handleKeyDown}
             name={`items.${index}.name`}
             ref={index === 0 ? firstItemRef : null} // Provide a ref for the first input
+            onPriceChange={(e) => handleItemPriceChange(index, e)}
           />
         ))}
 
@@ -146,16 +188,16 @@ export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
                       onFocus={highlightText}
                       type="number"
                       step="0.01"
-                      onChange={(e) =>
-                        field.onChange(parseFloat(e.target.value))
-                      }
+                      onChange={handleTaxChange}
                       onKeyDown={(e) => handleKeyDown(e, -1, "totals")}
+                      data-testid="tax-input"
                     />
                   </FormControl>
                   <FormMessage className="text-red-500 text-sm mt-1" />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="totalPrice"
@@ -172,8 +214,9 @@ export const ItemsForm = ({ onSubmit }: ItemsFormProps) => {
                       onFocus={highlightText}
                       type="number"
                       step="0.01"
+                      onChange={handleTotalPriceChange}
                       onKeyDown={(e) => handleKeyDown(e, -1, "totals")}
-                      disabled
+                      data-testid="total-price-input"
                     />
                   </FormControl>
                   <FormMessage className="text-red-500 text-sm mt-1" />
