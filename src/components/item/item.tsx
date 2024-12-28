@@ -30,6 +30,7 @@ interface ItemProps {
     currentIndex: number,
     fieldType: "name" | "price"
   ) => void;
+  onPriceChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const Item = forwardRef<HTMLInputElement, ItemProps>(
@@ -41,6 +42,7 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
       canRemove,
       onRemove: remove,
       onKeyDown: handleKeyDown,
+      onPriceChange,
     }: ItemProps,
     ref: React.ForwardedRef<HTMLInputElement>
   ) => {
@@ -119,9 +121,10 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                         onKeyDown={(e) => handleKeyDown(e, index, "price")}
                         type="number"
                         step="0.01"
-                        onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value))
-                        }
+                        onChange={(e) => {
+                          field.onChange(parseFloat(e.target.value));
+                          onPriceChange?.(e);
+                        }}
                         aria-labelledby="price"
                       />
                     </FormControl>
