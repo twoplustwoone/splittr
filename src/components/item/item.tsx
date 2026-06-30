@@ -6,6 +6,7 @@ import {
 } from "@radix-ui/react-collapsible";
 import { Control, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   FormField,
@@ -15,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { highlightText } from "@/lib/utils";
+import { formatCurrency, highlightText } from "@/lib/utils";
 import { itemsFormSchema } from "../itemsForm/schema";
 
 interface ItemProps {
@@ -37,7 +38,6 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
   (
     {
       control,
-      name,
       index,
       canRemove,
       onRemove: remove,
@@ -48,40 +48,40 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
   ) => {
     const currentName = useWatch({
       control,
-      name,
+      name: `items.${index}.name` as `items.${number}.name`,
     });
     const currentPrice = useWatch({
       control,
-      name,
+      name: `items.${index}.price` as `items.${number}.price`,
     });
 
     return (
-      <Collapsible defaultOpen className="mb-4">
-        <div className="border border-gray-200 rounded-md shadow-sm">
-          <CollapsibleTrigger className="w-full flex justify-between items-center bg-gray-50 px-4 py-3 rounded-t-md hover:bg-gray-100 focus:ring focus:ring-blue-200 shadow-md active:scale-95 transition-all">
-            <div className="flex items-center gap-2">
-              <h3 className="font-medium text-lg text-gray-700">
-                {typeof currentName === "string"
+      <Collapsible defaultOpen className="group mb-3">
+        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+          <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 bg-muted/40 px-4 py-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
+              <h3 className="truncate text-base font-semibold text-foreground">
+                {typeof currentName === "string" && currentName.trim()
                   ? currentName
                   : `Item ${index + 1}`}
               </h3>
             </div>
-            <span className="font-medium text-gray-600">
-              ${typeof currentPrice === "number" ? currentPrice : 0}
+            <span className="shrink-0 font-semibold tabular-nums text-foreground">
+              {formatCurrency(
+                typeof currentPrice === "number" ? currentPrice : 0
+              )}
             </span>
           </CollapsibleTrigger>
 
-          <CollapsibleContent className="bg-gray-100 px-4 py-4 rounded-b-md">
-            <div className="grid grid-cols-1 md:grid-cols-[2fr_2fr_auto] gap-6 items-start">
+          <CollapsibleContent className="border-t border-border px-4 py-4">
+            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[2fr_2fr_auto]">
               <FormField
                 control={control}
                 name={`items.${index}.name` as `items.${number}.name`}
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel
-                      aria-label="name"
-                      className="font-medium text-gray-600"
-                    >
+                    <FormLabel className="font-medium text-muted-foreground">
                       Name
                     </FormLabel>
                     <FormControl>
@@ -89,14 +89,12 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                         {...field}
                         data-index={`${index}-name`}
                         placeholder="Enter item name"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
                         onKeyDown={(e) => handleKeyDown(e, index, "name")}
                         onFocus={highlightText}
                         ref={ref}
-                        aria-labelledby="name"
                       />
                     </FormControl>
-                    <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                    <FormMessage className="mt-1 min-h-[20px] text-sm" />
                   </FormItem>
                 )}
               />
@@ -105,42 +103,45 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                 name={`items.${index}.price` as `items.${number}.price`}
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel
-                      aria-label="price"
-                      className="font-medium text-gray-600"
-                    >
+                    <FormLabel className="font-medium text-muted-foreground">
                       Price
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        data-index={`${index}-price`}
-                        placeholder="Enter price"
-                        onFocus={highlightText}
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                        onKeyDown={(e) => handleKeyDown(e, index, "price")}
-                        type="number"
-                        step="0.01"
-                        onChange={(e) => {
-                          field.onChange(parseFloat(e.target.value));
-                          onPriceChange?.(e);
-                        }}
-                        aria-labelledby="price"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500 text-sm mt-1 min-h-[20px]" />
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm text-muted-foreground">
+                        $
+                      </span>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          data-index={`${index}-price`}
+                          placeholder="0.00"
+                          onFocus={highlightText}
+                          className="pl-7 tabular-nums"
+                          onKeyDown={(e) => handleKeyDown(e, index, "price")}
+                          type="number"
+                          step="0.01"
+                          onChange={(e) => {
+                            field.onChange(parseFloat(e.target.value));
+                            onPriceChange?.(e);
+                          }}
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage className="mt-1 min-h-[20px] text-sm" />
                   </FormItem>
                 )}
               />
               {canRemove && (
-                <div className="mt-5 pt-0.5">
+                <div className="flex md:mt-7">
                   <Button
                     type="button"
-                    variant="destructive"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => remove(index)}
-                    className="text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md shadow-sm"
+                    aria-label={`Remove item ${index + 1}`}
+                    className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   >
-                    Remove
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               )}
