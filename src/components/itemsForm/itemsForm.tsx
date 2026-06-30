@@ -6,14 +6,9 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  SubmitHandler,
-  useFieldArray,
-  useForm,
-  useWatch,
-} from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { Plus, Receipt } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Item } from "@/components/item/item";
 import { highlightText } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,8 +24,10 @@ import { Input } from "@/components/ui/input";
 import { itemsFormSchema } from "./schema";
 import { HelpText } from "../helpText/helpText";
 
+export type ItemsFormValues = z.infer<typeof itemsFormSchema>;
+
 type ItemsFormProps = {
-  onSubmit: SubmitHandler<z.infer<typeof itemsFormSchema>>;
+  onChange: (values: ItemsFormValues) => void;
 };
 
 export type ItemsFormHandle = {
@@ -42,6 +39,9 @@ const defaultValues = {
   tax: 0.0,
   totalPrice: 0.0,
 };
+
+const num = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0;
 
 const useAutoFocusFirstItem = () => {
   const firstItemRef = useRef<HTMLInputElement | null>(null);
@@ -56,8 +56,8 @@ const useAutoFocusFirstItem = () => {
 };
 
 export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
-  ({ onSubmit }, ref) => {
-    const form = useForm<z.infer<typeof itemsFormSchema>>({
+  ({ onChange }, ref) => {
+    const form = useForm<ItemsFormValues>({
       resolver: zodResolver(itemsFormSchema),
       defaultValues,
       mode: "onBlur",
@@ -107,14 +107,18 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
       const newTotal = parseFloat(e.target.value) || 0;
       form.setValue("totalPrice", newTotal);
 
-      const subtotal = watchItems.reduce((acc, { price }) => acc + price, 0);
+      const subtotal = watchItems.reduce((acc, { price }) => acc + num(price), 0);
       form.setValue("tax", newTotal - subtotal);
     };
 
+    // Keep tax <-> total in sync when the user is editing items/tax.
     useEffect(() => {
       if (!isManualTotal) {
-        const subtotal = watchItems.reduce((acc, { price }) => acc + price, 0);
-        const newTotal = subtotal + watchTax;
+        const subtotal = watchItems.reduce(
+          (acc, { price }) => acc + num(price),
+          0
+        );
+        const newTotal = subtotal + num(watchTax);
 
         if (newTotal !== watchTotalPrice) {
           form.setValue("totalPrice", newTotal);
@@ -122,63 +126,80 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
       }
     }, [isManualTotal, watchItems, watchTax, watchTotalPrice, form]);
 
+    // Emit a sanitized snapshot live so results recompute as you type.
+    useEffect(() => {
+      onChange({
+        items: (watchItems ?? []).map((item) => ({
+          name: item.name,
+          price: num(item.price),
+        })),
+        tax: num(watchTax),
+        totalPrice: num(watchTotalPrice),
+      });
+    }, [watchItems, watchTax, watchTotalPrice, onChange]);
+
     const handleKeyDown = (
       e: React.KeyboardEvent,
       currentIndex: number,
       fieldType: "name" | "price" | "totals"
     ) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        form.handleSubmit(onSubmit)();
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (fieldType === "name") {
-          document
-            .querySelector<HTMLInputElement>(
-              `[data-index='${currentIndex}-price']`
-            )
-            ?.focus();
-        } else if (fieldType === "price") {
-          const nextNameInput = document.querySelector<HTMLInputElement>(
-            `[data-index='${currentIndex + 1}-name']`
-          );
-          if (nextNameInput) {
-            nextNameInput.focus();
-          } else {
-            append({ name: `Item ${fields.length + 1}`, price: 0 });
-            setTimeout(() => {
-              document
-                .querySelector<HTMLInputElement>(
-                  `[data-index='${fields.length}-name']`
-                )
-                ?.focus();
-            }, 0);
-          }
-        } else if (fieldType === "totals") {
-          form.handleSubmit(onSubmit)();
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+
+      if (fieldType === "name") {
+        document
+          .querySelector<HTMLInputElement>(
+            `[data-index='${currentIndex}-price']`
+          )
+          ?.focus();
+      } else if (fieldType === "price") {
+        const nextNameInput = document.querySelector<HTMLInputElement>(
+          `[data-index='${currentIndex + 1}-name']`
+        );
+        if (nextNameInput) {
+          nextNameInput.focus();
+        } else {
+          append({ name: `Item ${fields.length + 1}`, price: 0 });
+          setTimeout(() => {
+            document
+              .querySelector<HTMLInputElement>(
+                `[data-index='${fields.length}-name']`
+              )
+              ?.focus();
+          }, 0);
         }
+      } else {
+        (e.target as HTMLInputElement).blur();
       }
     };
 
     return (
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          {fields.map((field, index) => (
-            <Item
-              control={form.control}
-              index={index}
-              field={field}
-              canRemove={fields.length > 1}
-              onRemove={remove}
-              key={field.id}
-              onKeyDown={handleKeyDown}
-              name={`items.${index}.name`}
-              ref={index === 0 ? firstItemRef : null} // Provide a ref for the first input
-              onPriceChange={(e) => handleItemPriceChange(index, e)}
-            />
-          ))}
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="mb-2 flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="flex-1">Item</span>
+            <span className="w-28 text-right sm:w-36">Price</span>
+            {/* spacer to align with the remove button */}
+            <span className="h-9 w-9 shrink-0" aria-hidden="true" />
+          </div>
 
-          <div className="mt-2 flex justify-start">
+          <div className="space-y-2">
+            {fields.map((field, index) => (
+              <Item
+                control={form.control}
+                index={index}
+                field={field}
+                canRemove={fields.length > 1}
+                onRemove={remove}
+                key={field.id}
+                onKeyDown={handleKeyDown}
+                ref={index === 0 ? firstItemRef : null} // ref for the first input
+                onPriceChange={(e) => handleItemPriceChange(index, e)}
+              />
+            ))}
+          </div>
+
+          <div className="mt-3 flex justify-start">
             <HelpText text={"Enter ↵"}>
               <Button
                 type="button"
@@ -261,15 +282,6 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
               Enter the total tax or the final total — we'll keep the other in
               sync automatically.
             </p>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <HelpText text={"⌘ / Ctrl + Enter ↵"}>
-              <Button type="submit" size="lg" className="w-full sm:w-auto">
-                <Receipt className="h-4 w-4" />
-                Itemize
-              </Button>
-            </HelpText>
           </div>
         </form>
       </Form>

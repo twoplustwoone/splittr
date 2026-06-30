@@ -1,15 +1,15 @@
-import { z } from "zod";
-import { useRef, useState } from "react";
-import { Copy, RotateCcw, Split } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { AlertTriangle, Copy, RotateCcw, Split } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { useToast } from "./hooks/use-toast";
 import { CopyButton } from "./components/copyButton";
 import {
   ItemsForm,
   type ItemsFormHandle,
+  type ItemsFormValues,
 } from "./components/itemsForm/itemsForm";
-import { itemsFormSchema } from "./components/itemsForm/schema";
 import { formatCurrency } from "./lib/utils";
+import { allocateProportional, fromCents, toCents } from "./lib/split";
 
 type ItemizedItem = {
   name: string;
@@ -19,52 +19,53 @@ type ItemizedItem = {
 };
 
 function App() {
-  const [itemizedItems, setItemizedItems] = useState<ItemizedItem[]>([]);
+  const [values, setValues] = useState<ItemsFormValues | null>(null);
   const formRef = useRef<ItemsFormHandle>(null);
 
   const { toast } = useToast();
 
-  const handleSubmit = (values: z.infer<typeof itemsFormSchema>) => {
-    const { items, tax, totalPrice } = values;
-    const itemized = items.map(({ name, price }) => {
-      const taxProportion = (price / (totalPrice - tax)) * tax;
-      return {
-        name,
-        price,
-        tax: taxProportion,
-        total: price + taxProportion,
-      };
-    });
-    setItemizedItems(itemized);
+  const { items, subtotalCents, taxCents } = useMemo(() => {
+    const list = values?.items ?? [];
+    const priceCents = list.map((item) => toCents(item.price));
+    const subtotal = priceCents.reduce((acc, c) => acc + c, 0);
+    const tax = toCents(values?.tax ?? 0);
+    const allocated = allocateProportional(priceCents, tax);
+
+    const itemized: ItemizedItem[] = list.map((item, i) => ({
+      name: item.name?.trim() ? item.name : `Item ${i + 1}`,
+      price: fromCents(priceCents[i]),
+      tax: fromCents(allocated[i]),
+      total: fromCents(priceCents[i] + allocated[i]),
+    }));
+
+    return { items: itemized, subtotalCents: subtotal, taxCents: tax };
+  }, [values]);
+
+  const totals = {
+    price: fromCents(subtotalCents),
+    tax: fromCents(taxCents),
+    total: fromCents(subtotalCents + taxCents),
   };
 
+  const negativeTotal = subtotalCents > 0 && taxCents < 0;
+  const hasResults = subtotalCents > 0 && !negativeTotal;
+
   const handleStartOver = () => {
-    setItemizedItems([]);
     formRef.current?.reset();
   };
 
   const handleCopyAll = () => {
-    const summary = itemizedItems
+    const summary = items
       .map((item) => `${item.name}: ${formatCurrency(item.total)}`)
       .join("\n");
     navigator.clipboard.writeText(summary);
     toast({
       title: "Items Copied!",
-      description: "All item names and totals have been copied to your clipboard.",
+      description:
+        "All item names and totals have been copied to your clipboard.",
       variant: "default",
     });
   };
-
-  const totals = itemizedItems.reduce(
-    (acc, item) => ({
-      price: acc.price + item.price,
-      tax: acc.tax + item.tax,
-      total: acc.total + item.total,
-    }),
-    { price: 0, tax: 0, total: 0 }
-  );
-
-  const hasResults = itemizedItems.length > 0;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -82,14 +83,25 @@ function App() {
         </header>
 
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <ItemsForm ref={formRef} onSubmit={handleSubmit} />
+          <ItemsForm ref={formRef} onChange={setValues} />
         </section>
 
-        {!hasResults && (
+        {negativeTotal && (
+          <div
+            role="alert"
+            className="mt-6 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              Your total is below the items' subtotal, so the tax would be
+              negative. Double-check the total or the item prices.
+            </p>
+          </div>
+        )}
+
+        {!hasResults && !negativeTotal && (
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Add your items and the total tax, then hit{" "}
-            <span className="font-medium text-foreground">Itemize</span> to see
-            each item's fair share.
+            Add items and the total tax to see each item's fair share.
           </p>
         )}
 
@@ -123,7 +135,7 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {itemizedItems.map((item, index) => (
+                  {items.map((item, index) => (
                     <tr
                       key={index}
                       className="border-t border-border transition-colors hover:bg-muted/40"
@@ -167,7 +179,7 @@ function App() {
 
             {/* Mobile cards */}
             <div className="space-y-3 sm:hidden">
-              {itemizedItems.map((item, index) => (
+              {items.map((item, index) => (
                 <div
                   key={index}
                   className="rounded-lg border border-border p-4"
