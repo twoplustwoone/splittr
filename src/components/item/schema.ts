@@ -12,4 +12,6 @@ export const itemObject = z.object({
       })
       .min(0, "Price cannot be less than 0")
   ),
+  // Person ids this item is split between (empty = unassigned).
+  assignees: z.array(z.string()).default([]),
 });

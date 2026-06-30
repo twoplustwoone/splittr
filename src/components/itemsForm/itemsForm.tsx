@@ -1,11 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Plus } from "lucide-react";
@@ -23,6 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { itemsFormSchema } from "./schema";
 import { HelpText } from "../helpText/helpText";
+import { PeopleField } from "../people/peopleField";
+import { TipField } from "./tipField";
 
 export type ItemsFormValues = z.infer<typeof itemsFormSchema>;
 
@@ -34,10 +30,11 @@ export type ItemsFormHandle = {
   reset: () => void;
 };
 
-const defaultValues = {
-  items: [{ name: "Item 1", price: 0.0 }],
+const defaultValues: ItemsFormValues = {
+  items: [{ name: "Item 1", price: 0.0, assignees: [] }],
+  people: [],
   tax: 0.0,
-  totalPrice: 0.0,
+  tip: { mode: "percent", value: 0 },
 };
 
 const num = (value: unknown) =>
@@ -67,20 +64,15 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
       name: "items",
     });
 
-    const [isManualTotal, setIsManualTotal] = useState(false);
-
     const watchItems = useWatch({ control: form.control, name: "items" });
+    const watchPeople = useWatch({ control: form.control, name: "people" });
     const watchTax = useWatch({ control: form.control, name: "tax" });
-    const watchTotalPrice = useWatch({
-      control: form.control,
-      name: "totalPrice",
-    });
+    const watchTip = useWatch({ control: form.control, name: "tip" });
 
     const { firstItemRef } = useAutoFocusFirstItem();
 
     useImperativeHandle(ref, () => ({
       reset: () => {
-        setIsManualTotal(false);
         form.reset(defaultValues);
         setTimeout(() => firstItemRef.current?.focus(), 0);
       },
@@ -90,53 +82,50 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
       index: number,
       e: React.ChangeEvent<HTMLInputElement>
     ) => {
-      setIsManualTotal(false); // user changed an item => revert to "auto" total
       const priceValue = parseFloat(e.target.value) || 0;
-
       form.setValue(`items.${index}.price`, priceValue);
     };
 
     const handleTaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setIsManualTotal(false);
-      const newTax = parseFloat(e.target.value) || 0;
-      form.setValue("tax", newTax);
+      form.setValue("tax", parseFloat(e.target.value) || 0);
     };
 
-    const handleTotalPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setIsManualTotal(true);
-      const newTotal = parseFloat(e.target.value) || 0;
-      form.setValue("totalPrice", newTotal);
-
-      const subtotal = watchItems.reduce((acc, { price }) => acc + num(price), 0);
-      form.setValue("tax", newTotal - subtotal);
+    const handleTipModeChange = (mode: "percent" | "amount") => {
+      form.setValue("tip.mode", mode);
     };
 
-    // Keep tax <-> total in sync when the user is editing items/tax.
-    useEffect(() => {
-      if (!isManualTotal) {
-        const subtotal = watchItems.reduce(
-          (acc, { price }) => acc + num(price),
-          0
-        );
-        const newTotal = subtotal + num(watchTax);
+    const handleTipValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      form.setValue("tip.value", parseFloat(e.target.value) || 0);
+    };
 
-        if (newTotal !== watchTotalPrice) {
-          form.setValue("totalPrice", newTotal);
-        }
-      }
-    }, [isManualTotal, watchItems, watchTax, watchTotalPrice, form]);
+    const toggleAssignee = (index: number, personId: string) => {
+      const current = form.getValues(`items.${index}.assignees`) ?? [];
+      const next = current.includes(personId)
+        ? current.filter((id) => id !== personId)
+        : [...current, personId];
+      form.setValue(`items.${index}.assignees`, next, { shouldDirty: true });
+    };
+
+    const people = (watchPeople ?? []).map((p) => ({ id: p.id, name: p.name }));
 
     // Emit a sanitized snapshot live so results recompute as you type.
     useEffect(() => {
       onChange({
         items: (watchItems ?? []).map((item) => ({
-          name: item.name,
+          name: item.name ?? "",
           price: num(item.price),
+          assignees: item.assignees ?? [],
         })),
+        people,
         tax: num(watchTax),
-        totalPrice: num(watchTotalPrice),
+        tip: {
+          mode: watchTip?.mode ?? "percent",
+          value: num(watchTip?.value),
+        },
       });
-    }, [watchItems, watchTax, watchTotalPrice, onChange]);
+      // `people` is derived from watchPeople; depend on the source.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [watchItems, watchPeople, watchTax, watchTip, onChange]);
 
     const handleKeyDown = (
       e: React.KeyboardEvent,
@@ -159,7 +148,7 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
         if (nextNameInput) {
           nextNameInput.focus();
         } else {
-          append({ name: `Item ${fields.length + 1}`, price: 0 });
+          append({ name: `Item ${fields.length + 1}`, price: 0, assignees: [] });
           setTimeout(() => {
             document
               .querySelector<HTMLInputElement>(
@@ -176,24 +165,27 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
     return (
       <Form {...form}>
         <form onSubmit={(e) => e.preventDefault()}>
+          <PeopleField control={form.control} />
+
           <div className="mb-2 flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <span className="flex-1">Item</span>
             <span className="w-28 text-right sm:w-36">Price</span>
-            {/* spacer to align with the remove button */}
             <span className="h-9 w-9 shrink-0" aria-hidden="true" />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {fields.map((field, index) => (
               <Item
                 control={form.control}
                 index={index}
                 field={field}
                 canRemove={fields.length > 1}
+                people={people}
                 onRemove={remove}
+                onToggleAssignee={toggleAssignee}
                 key={field.id}
                 onKeyDown={handleKeyDown}
-                ref={index === 0 ? firstItemRef : null} // ref for the first input
+                ref={index === 0 ? firstItemRef : null}
                 onPriceChange={(e) => handleItemPriceChange(index, e)}
               />
             ))}
@@ -205,7 +197,11 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  append({ name: `Item ${fields.length + 1}`, price: 0 })
+                  append({
+                    name: `Item ${fields.length + 1}`,
+                    price: 0,
+                    assignees: [],
+                  })
                 }
               >
                 <Plus className="h-4 w-4" />
@@ -247,40 +243,15 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
                 )}
               />
 
-              <FormField
+              <TipField
                 control={form.control}
-                name="totalPrice"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="font-medium text-muted-foreground">
-                      Total price
-                    </FormLabel>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm text-muted-foreground">
-                        $
-                      </span>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="0.00"
-                          className="pl-7 tabular-nums"
-                          onFocus={highlightText}
-                          type="number"
-                          step="0.01"
-                          onChange={handleTotalPriceChange}
-                          onKeyDown={(e) => handleKeyDown(e, -1, "totals")}
-                          data-testid="total-price-input"
-                        />
-                      </FormControl>
-                    </div>
-                    <FormMessage className="mt-1 text-sm" />
-                  </FormItem>
-                )}
+                onModeChange={handleTipModeChange}
+                onValueChange={handleTipValueChange}
               />
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
-              Enter the total tax or the final total — we'll keep the other in
-              sync automatically.
+              Enter the tax and tip from your receipt — they're split across
+              items (and people) by amount.
             </p>
           </div>
         </form>
