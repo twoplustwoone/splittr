@@ -106,11 +106,11 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                     <FormLabel className="font-medium text-muted-foreground">
                       Price
                     </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                          $
-                        </span>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm text-muted-foreground">
+                        $
+                      </span>
+                      <FormControl>
                         <Input
                           {...field}
                           data-index={`${index}-price`}
@@ -125,8 +125,8 @@ const Item = forwardRef<HTMLInputElement, ItemProps>(
                             onPriceChange?.(e);
                           }}
                         />
-                      </div>
-                    </FormControl>
+                      </FormControl>
+                    </div>
                     <FormMessage className="mt-1 min-h-[20px] text-sm" />
                   </FormItem>
                 )}

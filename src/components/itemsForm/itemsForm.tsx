@@ -203,11 +203,11 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
                     <FormLabel className="font-medium text-muted-foreground">
                       Total tax
                     </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                          $
-                        </span>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm text-muted-foreground">
+                        $
+                      </span>
+                      <FormControl>
                         <Input
                           {...field}
                           placeholder="0.00"
@@ -219,8 +219,8 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
                           onKeyDown={(e) => handleKeyDown(e, -1, "totals")}
                           data-testid="tax-input"
                         />
-                      </div>
-                    </FormControl>
+                      </FormControl>
+                    </div>
                     <FormMessage className="mt-1 text-sm" />
                   </FormItem>
                 )}
@@ -234,11 +234,11 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
                     <FormLabel className="font-medium text-muted-foreground">
                       Total price
                     </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                          $
-                        </span>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm text-muted-foreground">
+                        $
+                      </span>
+                      <FormControl>
                         <Input
                           {...field}
                           placeholder="0.00"
@@ -250,8 +250,8 @@ export const ItemsForm = forwardRef<ItemsFormHandle, ItemsFormProps>(
                           onKeyDown={(e) => handleKeyDown(e, -1, "totals")}
                           data-testid="total-price-input"
                         />
-                      </div>
-                    </FormControl>
+                      </FormControl>
+                    </div>
                     <FormMessage className="mt-1 text-sm" />
                   </FormItem>
                 )}
